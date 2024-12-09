@@ -63,7 +63,7 @@ def update_cell_status(densities, ctm_params):
             outflow = 0
         else:
             outflow = min(ctm_params.free_flow_speed * densities[i], ctm_params.wave_speed * (ctm_params.jam_density - densities[i+1]))
-
+            
         new_densities[i] = densities[i] + (inflow - outflow) / ctm_params.cell_length   # n(t+1) = n(t) + (y(i) - y(i+1))/dx
 
     return new_densities

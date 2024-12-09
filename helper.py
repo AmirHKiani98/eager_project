@@ -4,6 +4,10 @@ from CTM_class import CTMParameters
 cell_length = CTMParameters().cell_length
 vehicle_length = CTMParameters().vehicle_length
 
+def traffic_light(segment_id, time):
+    pass # To Kian
+
+
 
 # gets vehicle info and adds it to the cell density
 def veh_to_density(densities, vehicle_position):
