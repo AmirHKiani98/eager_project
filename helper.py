@@ -1,6 +1,6 @@
 # Some functions that will be used as tool, often used.
 
-from CTM_class import CTMParameters
+from constants import CTMParameters
 cell_length = CTMParameters().cell_length
 vehicle_length = CTMParameters().vehicle_length
 
@@ -47,3 +47,41 @@ def veh_to_density(densities, vehicle_position):
 # # test the function
 # den = [0,0 ,0 , 0, 0]
 # print(veh_to_density(den, 20))
+
+
+# returns whether there is a traffic light at the end of the segment or not
+def is_tl(segment_id):
+    return True
+
+# returns status of the traffic light, green = 1, red = 0
+# note for Amir: you probably need to add (time, segment id) arguments to this function
+def tl_status(time, segment_id):
+    if time % 60 < 30:
+        return 1
+    else:
+        return 0
+    
+
+
+
+
+    
+def initialize_density(initial_density=0):
+    """
+    Initialize densities for each cell in the segment.
+
+    Args:
+        segment_length (float): Total length of the segment (meters).
+        cell_length (float): Length of each cell (meters).
+        initial_density (float): Initial density for each cell (vehicles/meter).
+
+    Returns:
+        list of float: Initial densities for each cell.
+    """
+    # Calculate the number of cells
+    num_cells = int(CTMParameters().segment_length / CTMParameters().cell_length)
+    
+    # Create a list of densities for all cells
+    densities = [initial_density] * num_cells
+
+    return densities
