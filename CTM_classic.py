@@ -10,7 +10,7 @@ import math
 ## Use descriptive variable names for better readability.
 ## Avoid magic numbers like 1 for the green light status; use constants instead.
 
-ctm_params = CTMParameters() # in this example, we use the default parameters
+# ctm_params = CTMParameters() # in this example, we use the default parameters
 
 
 ## Cell transmission model: update cell density
@@ -18,7 +18,7 @@ ctm_params = CTMParameters() # in this example, we use the default parameters
 # " inflow is the number of vehicles enter from the previous cell to the current cell in one step"
 # " outflow is the number of vehicles exit from the current cell to the next cell in one step"
 # assumptions: jam density and max flow are constant for all cells
-def update_cell_status(time, segment_id, densities, ctm_params, entry_flow, traffic_lights_df, traffic_lights_dict_states, ctm_params):
+def update_cell_status(time, segment_id, densities, ctm_params, entry_flow, traffic_lights_df, traffic_lights_dict_states):
     num_cells = len(densities)
     new_densities = densities.copy()
     dt = ctm_params.time_step

@@ -1,8 +1,6 @@
 # Some functions that will be used as tool, often used.
 
 from constants import CTMParameters
-cell_length = CTMParameters().cell_length
-vehicle_length = CTMParameters().vehicle_length
 
 def traffic_light(segment_id, time):
     pass # To Kian
@@ -71,7 +69,8 @@ def tl_status(time, segment_id, traffic_lights_df, traffic_lights_dict_states):
     # Finding the closest time to the given time
     closest_idx = (traffic_light_status_df['time'] - time).abs().idxmin()
     # Getting the status of the traffic light at that time
-    status = traffic_light_status_df.loc[closest_idx, 'status']
+    print(closest_idx)
+    status = traffic_light_status_df.loc[closest_idx, 'traffic_status']
     if status == "green":
         return 1
     else:
@@ -82,7 +81,7 @@ def tl_status(time, segment_id, traffic_lights_df, traffic_lights_dict_states):
 
 
     
-def initialize_density(initial_density=0):
+def initialize_density(ctm_parms, initial_density=0):
     """
     Initialize densities for each cell in the segment.
 
@@ -95,7 +94,7 @@ def initialize_density(initial_density=0):
         list of float: Initial densities for each cell.
     """
     # Calculate the number of cells
-    num_cells = int(CTMParameters().segment_length / CTMParameters().cell_length)
+    num_cells = int(ctm_parms.segment_length / ctm_parms.cell_length)
     
     # Create a list of densities for all cells
     densities = [initial_density] * num_cells
