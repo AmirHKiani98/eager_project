@@ -61,8 +61,18 @@ def is_tl(segment_id, traffic_lights_df):
 
 # returns status of the traffic light, green = 1, red = 0
 # note for Amir: you probably need to add (time, segment id) arguments to this function
-def tl_status(time, segment_id):
-    if time % 60 < 30:
+def tl_status(time, segment_id, traffic_lights_df, traffic_lights_dict_states):
+    
+    # Now lets find the traffic light id in that segment
+    if segment_id in traffic_lights_df.nearest_segment_id.values:
+        tl_id = traffic_lights_df[traffic_lights_df.nearest_segment_id == segment_id].index[0]
+    # Extract the dataframe out of that dictionary that I made in the ctm_model.ipynb
+    traffic_light_status_df = traffic_lights_dict_states[tl_id]
+    # Finding the closest time to the given time
+    closest_idx = (traffic_light_status_df['time'] - time).abs().idxmin()
+    # Getting the status of the traffic light at that time
+    status = traffic_light_status_df.loc[closest_idx, 'status']
+    if status == "green":
         return 1
     else:
         return 0
