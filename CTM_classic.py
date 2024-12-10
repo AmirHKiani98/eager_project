@@ -4,6 +4,7 @@ import math
 
 # Notes for Maziar:
 ## Do not use CTMParameters().object at all! If you use it, it will create a new object every time you call it. Instead, use the instance that you make of it!
+## Try avoidng using the istance of CTMParemeters as a global object. Instead, pass it as an argument to the functions that need it.
 ## The docstring could be formatted for clarity: 1- Mention all parameters and their expected types! 2- Include an explanation of the function's output!
 ## Check for invalid or empty densities.
 ## Use descriptive variable names for better readability.
