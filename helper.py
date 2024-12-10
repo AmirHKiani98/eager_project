@@ -69,7 +69,6 @@ def tl_status(time, segment_id, traffic_lights_df, traffic_lights_dict_states):
     # Finding the closest time to the given time
     closest_idx = (traffic_light_status_df['time'] - time).abs().idxmin()
     # Getting the status of the traffic light at that time
-    print(closest_idx)
     status = traffic_light_status_df.loc[closest_idx, 'traffic_status']
     if status == "green":
         return 1
