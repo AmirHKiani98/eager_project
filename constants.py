@@ -1,5 +1,5 @@
 class CTMParameters:
-    def __init__(self, time_step = 0.04 , cell_length=6, vehicle_length=5, free_flow_speed=15, wave_speed=5, jam_density=0.2, segment_length=100):
+    def __init__(self, time_step = 0.4 , cell_length=6, vehicle_length=5, free_flow_speed=15, wave_speed=5, segment_length=40):
         """
         Initialize the parameters for the Cell Transmission Model.
 
@@ -15,7 +15,7 @@ class CTMParameters:
         self.vehicle_length = vehicle_length
         self.free_flow_speed = free_flow_speed
         self.wave_speed = wave_speed
-        self.jam_density = jam_density
+        self.jam_density = 150/1000 * cell_lengthW
         self.segment_length = segment_length
         
         
