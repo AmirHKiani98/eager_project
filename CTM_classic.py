@@ -6,6 +6,8 @@ import math
 ## Do not use CTMParameters().object at all! If you use it, it will create a new object every time you call it. Instead, use the object that is passed to the function as an argument.
 ## The docstring could be formatted for clarity: 1- Mention all parameters and their expected types! 2- Include an explanation of the function's output!
 ## Check for invalid or empty densities.
+## Use descriptive variable names for better readability.
+## Avoid magic numbers like 1 for the green light status; use constants instead.
 
 ctm_params = CTMParameters() # in this example, we use the default parameters
 
