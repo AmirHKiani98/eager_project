@@ -10,7 +10,7 @@ ctm_params = CTMParameters() # in this example, we use the default parameters
 # " inflow is the number of vehicles enter from the previous cell to the current cell in one step"
 # " outflow is the number of vehicles exit from the current cell to the next cell in one step"
 # assumptions: jam density and max flow are constant for all cells
-def update_cell_status(time, segment_id, densities, ctm_params, entry_flow):
+def update_cell_status(time, segment_id, densities, ctm_params, entry_flow, traffic_lights_df, traffic_lights_dict_states):
     num_cells = len(densities)
     new_densities = densities.copy()
     dt = ctm_params.time_step
@@ -22,9 +22,9 @@ def update_cell_status(time, segment_id, densities, ctm_params, entry_flow):
 
         if i == num_cells - 1:  # last cell
             # check if there is a traffic light at the end of the segment
-            if is_tl(segment_id):
+            if is_tl(segment_id, traffic_lights_df):
                 # check the status of the traffic light
-                if tl_status(time, segment_id) == 1: # green light
+                if tl_status(time, segment_id, traffic_lights_df, traffic_lights_dict_states) == 1: # green light
                     outflow = min(CTMParameters().max_flow(), ctm_params.free_flow_speed * densities[i] * dt, math.inf)
                 else:
                     outflow = 0
@@ -39,8 +39,8 @@ def update_cell_status(time, segment_id, densities, ctm_params, entry_flow):
 
 
 # test the function
-Density = [0.1, 0.15, 0, 0.2, 0.1, 0.1]
-entry_flow = 0
-time = 5
-updated_density = update_cell_status(time, 1, Density, ctm_params, entry_flow)
-print(updated_density)
+# Density = [0.1, 0.15, 0, 0.2, 0.1, 0.1]
+# entry_flow = 0
+# time = 5
+# updated_density = update_cell_status(time, 1, Density, ctm_params, entry_flow)
+# print(updated_density)
