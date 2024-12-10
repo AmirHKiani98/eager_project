@@ -54,7 +54,7 @@ def veh_to_density(densities, vehicle_position):
 
 
 # returns whether there is a traffic light at the end of the segment or not
-def is_tl(segment_id):
+def is_tl(segment_id, segments_gdf, traffic_lights_csv):
     return True
 
 # returns status of the traffic light, green = 1, red = 0
