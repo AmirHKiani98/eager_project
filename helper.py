@@ -7,43 +7,6 @@ def traffic_light(segment_id, time):
 
 
 
-# gets vehicle info and adds it to the cell density
-def veh_to_density(densities, vehicle_position):
-    """
-    Adds a vehicle's density contribution to the appropriate cells.
-
-    Args:
-        densities (list of float): Current density values for each cell (vehicles/meter) in this link.
-        vehicle_position (float): Position of the vehicle (meters from the start of the segment) in this link. Note this value is the middle of the vehicle
-          Starts from 0 and ends by vehicle length.
-
-    Returns:
-        list of float: Updated densities with the vehicle's updated.
-    """
-    num_cells = len(densities)
-
-    vehicle_position = vehicle_position - vehicle_length / 2  # get the start of the vehicle and use this as vehicle position
-
-    # Calculate the start and end cell indices
-    start_cell = int(vehicle_position // cell_length)
-    end_cell = int((vehicle_position + vehicle_length) // cell_length)
-
-    # Handle cases when the vehicle spans only one cell
-    if start_cell == end_cell:
-        densities[start_cell] += 1 / cell_length   ## add 1 veh/m to the cell density
-
-    
-    # vehicle is on the border of two cells:
-    else:
-        # Fractional overlap with the start cell
-        start_fraction = ((start_cell + 1) * cell_length - vehicle_position )/ vehicle_length
-        densities[start_cell] += start_fraction / cell_length
-
-        # Fractional overlap with the end cell (if applicable)
-        end_fraction = ((vehicle_position + vehicle_length) - end_cell * cell_length) / vehicle_length
-        densities[end_cell] += end_fraction / cell_length
-
-    return densities
 
 
 # # test the function
@@ -80,7 +43,7 @@ def tl_status(time, segment_id, traffic_lights_df, traffic_lights_dict_states):
 
 
     
-def initialize_density(ctm_parms, initial_density=0):
+def initialize_density(ctm_parms, segment_length, initial_density=0):
     """
     Initialize densities for each cell in the segment.
 
@@ -93,7 +56,7 @@ def initialize_density(ctm_parms, initial_density=0):
         list of float: Initial densities for each cell.
     """
     # Calculate the number of cells
-    num_cells = int(ctm_parms.segment_length / ctm_parms.cell_length)
+    num_cells = int(segment_length / ctm_parms.cell_length)
     
     # Create a list of densities for all cells
     densities = [initial_density] * num_cells
