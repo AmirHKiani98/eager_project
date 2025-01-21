@@ -16,6 +16,7 @@ class CTMParameters:
         self.free_flow_speed = free_flow_speed
         self.wave_speed = wave_speed
         self.jam_density = 150/1000 * cell_length
+        self.jam_density_link = 130  # jam density for the link: 130 vehicles per km
         self.segment_length = segment_length
         
         
