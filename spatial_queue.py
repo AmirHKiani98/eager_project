@@ -25,7 +25,7 @@ N_downstr = cumulativecount_down
 # N_downstr: cumulative count at link downstream at time t (current time)
 # entry_flow: for now constant, average number of vehicles entering to the link in vehicles per second
 # assumptions: queue forms at the link downstream
-def update_point_queue(time, segment_id, entry_flow, traffic_lights_df, traffic_lights_dict_states):
+def update_spatial_queue(time, segment_id, entry_flow, traffic_lights_df, traffic_lights_dict_states):
 
     #find the receiving flow, including the entry flow
     receceiving_flow = math.min( entry_flow*ctm_params.time_step, ctm_params.segment_length*ctm_params.jam_density - (N_upstr(time,segment_id) - N_downstr(time,segment_id)), ctm_params.max_flow*ctm_params.time_step)
