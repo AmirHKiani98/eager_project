@@ -18,6 +18,7 @@ class CTMParameters:
         self.jam_density = 150/1000 * cell_length
         self.jam_density_link = 130  # jam density for the link: 130 vehicles per km
         self.segment_length = segment_length
+        self.max_flow_link = 2000 / 3600 # vehicle per seconds
         
         
 
