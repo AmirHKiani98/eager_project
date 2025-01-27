@@ -28,7 +28,7 @@ N_downstr = cumulativecount_down
 def update_spatial_queue(time, segment_id, entry_flow, traffic_lights_df, traffic_lights_dict_states):
 
     #find the receiving flow, including the entry flow
-    receceiving_flow = math.min( entry_flow*ctm_params.time_step, ctm_params.segment_length*ctm_params.jam_density - (N_upstr(time,segment_id) - N_downstr(time,segment_id)), ctm_params.max_flow*ctm_params.time_step)
+    receceiving_flow = math.min( entry_flow*ctm_params.time_step, ctm_params.segment_length*ctm_params.jam_density - (N_upstr(time,segment_id) - N_downstr(time,segment_id)), ctm_params.max_flow_link*ctm_params.time_step)
     
     # check if there is a traffic light at the end of the segment
     if is_tl(segment_id, traffic_lights_df):
