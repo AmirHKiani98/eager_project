@@ -29,8 +29,7 @@ def LTM_count(time, segment_id, entry_flow, location, horizon):
     # location: location in the segment in m, 0 <= location <= segment_length
     # horizon: time horizon for the cumulative count in seconds, start from "time" and end by "time + L/ffs"
 
-
-    target1 = N_upstr(time + location - ctm_params.free_flow_speed*horizon, segment_id) # count for the uncongested route
+    target1 = N_upstr(time + horizon - location/ctm_params.free_flow_speed, segment_id) # count for the uncongested route
     
     # find the point of congestion wave intersection with the characteristic, using for N(x_c)
     congestion_intersect_x1 = location + ctm_params.wave_speed*horizon # the intersection of the congestion wave with the segment, line 1
@@ -41,33 +40,25 @@ def LTM_count(time, segment_id, entry_flow, location, horizon):
         congestion_intersect_x = congestion_intersect_x2
     
     target2 = (ctm_params.jam_density_FD/1000)* (congestion_intersect_x - location) + N_downstr((ctm_params.wave_speed*horizon + location - ctm_params.segment_length)/ctm_params.wave_speed , segment_id) # count for the congested route
-    print("uncongested : " , target1,  " congested: " , target2)
+    # print("uncongested : " , target1,  " congested: " , target2)
     print("output:" , min(target1, target2))
-
-    # calculate density at the location
 
     return min(target1, target2) 
 
-    #     # line slopes0
-    # unc_slope = ctm_params.free_flow_speed
-    # cong_slope = - abs(ctm_params.wave_speed)   # should be negative
-
-    # N(0,t)
 
 
 # returns density and flow at the location x at time t+horizon using LTM cumulative counts
 def LTM_states(time, segment_id, entry_flow, location, horizon):
     eps = ctm_params.free_flow_speed/100  # a small number, unit in meters
-    density = -(LTM_count(time, segment_id, entry_flow, location, horizon) - LTM_count(time, segment_id, entry_flow, location+eps, horizon)) / eps
-    flow = (LTM_count(time, segment_id, entry_flow, location, horizon) - LTM_count(time, segment_id, entry_flow, location, horizon+eps)) / eps
+    density = (LTM_count(time, segment_id, entry_flow, location, horizon) - LTM_count(time, segment_id, entry_flow, location+eps, horizon)) / eps
+    flow = -(LTM_count(time, segment_id, entry_flow, location, horizon) - LTM_count(time, segment_id, entry_flow, location, horizon+eps)) / eps
     print("density: ", density, " flow: ", flow)
     return density, flow
 
 # test the function
 time = 0
 horizon = 30
-location = 805
-LTM_count(0, 1, 1, location, horizon) # expected output: 48 + 48*50 = 2448, 150*50 + 12 = 7512
+location = 800
 LTM_states(0, 1, 1, location, horizon) # expected output: 0.15, 0.15*26.8 = 4.02
 
 
