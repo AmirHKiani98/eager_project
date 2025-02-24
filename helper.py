@@ -16,7 +16,7 @@ def traffic_light(segment_id, time):
 
 # returns whether there is a traffic light at the end of the segment or not
 def is_tl(segment_id, traffic_lights_df):
-    if segment_id in traffic_lights_df.nearest_segment_id.values:
+    if segment_id in traffic_lights_df.nearest_link_id.values:
         return True
     return False
 
@@ -25,8 +25,8 @@ def is_tl(segment_id, traffic_lights_df):
 def tl_status(time, segment_id, traffic_lights_df, traffic_lights_dict_states):
     
     # Now lets find the traffic light id in that segment
-    if segment_id in traffic_lights_df.nearest_segment_id.values:
-        tl_id = traffic_lights_df[traffic_lights_df.nearest_segment_id == segment_id].index[0]
+    if segment_id in traffic_lights_df.nearest_link_id.values:
+        tl_id = traffic_lights_df[traffic_lights_df.nearest_link_id == segment_id].index[0]
     # Extract the dataframe out of that dictionary that I made in the ctm_model.ipynb
     traffic_light_status_df = traffic_lights_dict_states[tl_id]
     # Finding the closest time to the given time
