@@ -116,7 +116,6 @@ with open("traffic_info_dict.pkl", "rb") as f:
     traffic_lights_dict_states = pickle.load(f)
 
 
-
 # loading the main dataframe
 main_df = pd.read_csv("20181024_d1_0830_0900_traffic_segmented.csv")
 # loading the traffic light states
@@ -162,21 +161,18 @@ with open("traffic_info_dict.pkl", "rb") as f:
     traffic_lights_dict_states = pickle.load(f)
 
 
-
-DISTANCE_THRESHOLD = 0.0001
-
-
 from CTM_classic import CTMParameters, initialize_density, update_cell_status
 from sklearn.preprocessing import normalize
+
+
+DISTANCE_THRESHOLD = 0.0001
 
 # Initialize CTM parameters
 ctm_params = CTMParameters()
 ctm_params.segment_length = segments_gdf["length"].mean()
 ctm_params.cell_length= 15
 
-# Truncate points that are too far from the main corridor line
 main_df_truncated = main_df[main_df["link_distance"] < DISTANCE_THRESHOLD].copy()  # Ensure it's a copy
-# main_df_truncated["one_axis_trajectory"] = main_df_truncated.apply(lambda row: lat_lon_to_axis(row["lat"], row["lon"], crs="EPSG:4326"), axis=1)
 
 # Normalize trajectory
 normalized_trajectory = (
@@ -249,81 +245,164 @@ segments_gdf_exploded = segments_gdf_exploded.reset_index()
 for column in segments_gdf_exploded.columns:
     if column.startswith("cell_"):
         segments_gdf_exploded[column] = gpd.GeoSeries(segments_gdf_exploded[column])
-import geopandas as gpd
-from shapely.geometry import Point
-from tqdm import tqdm  # Import tqdm for progress
 
-def find_closest_cell(lat, lon, link_id, segments_gdf_exploded):
-    """
-    Find the nearest segment ID to a given point.
+import pandas as pd
+
+# Read the CSV file
+main_df_truncated_with_cell = pd.read_csv("20181024_d1_0830_0900_segmented_oneaxistrajectory_cell.csv")
+
+# Group by the desired columns and aggregate the vehicle IDs into a frozenset
+grouped_with_veh_ids = main_df_truncated_with_cell.groupby(["link_id", "time", "closest_cell"]).agg({
+    "veh_id": lambda x: frozenset(x)  # Use frozenset instead of set
+}).reset_index()
+
+# Merge the new column back into the original dataframe
+main_df_truncated_with_cell = main_df_truncated_with_cell.merge(grouped_with_veh_ids, on=["link_id", "time", "closest_cell"], suffixes=('', '_list'))
+
+# Rename the new column for clarity
+main_df_truncated_with_cell.rename(columns={"veh_id_list": "veh_id_list"}, inplace=True)
+
+# Display the shapes
+duplicate_dropped = main_df_truncated_with_cell.drop_duplicates(subset=["link_id", "time", "closest_cell", "veh_id_list"])[["veh_id_list", "link_id", "time", "closest_cell"]]
+
+# Filter the DataFrame for closest_cell == "cell_1"
+cell_1 = duplicate_dropped[duplicate_dropped["closest_cell"] == "cell_1"]
+_dict = {}
+
+# Process each link_id group separately
+for link_id in cell_1["link_id"].unique():
+    # Filter the DataFrame for the current link_id
+    link_df = cell_1[cell_1["link_id"] == link_id].copy()
+
+    # Compute the deletion list as the set difference between the current and previous rows
+    link_df["veh_id_list_deletion"] = [
+        curr - prev if isinstance(curr, frozenset) and isinstance(prev, frozenset) else frozenset()
+        for prev, curr in zip([frozenset()] * len(link_df), link_df["veh_id_list"].values)
+    ]
+
+    link_df["inflow"] = link_df["veh_id_list_deletion"].apply(len)
+    _dict[link_id] = link_df[["inflow", "time"]]
+
+inflow = pd.DataFrame({})
+for index, value in _dict.items():
+    value["link_id"] = index
+    inflow = pd.concat([inflow, value])
+inflow.to_csv("20181024_d1_0830_0900_inflow.csv")
+
+speeds = main_df_truncated_with_cell['speed']
+
+
+import numpy as np
+free_flow_threshold = 25 
+free_flow_speeds = speeds[speeds > free_flow_threshold]
+
+mean_speed = np.mean(free_flow_speeds)
+percentile_85 = np.percentile(free_flow_speeds, 85)
+
+
+
+percentile_85_m_s = percentile_85/3.6
+ctm_params.free_flow_speed = percentile_85_m_s
+
+
+grouped = duplicate_dropped.groupby(["closest_cell", "link_id", "time"])
+vehicle_count = grouped.size().reset_index(name="vehicle_count")
+vehicle_count["density"] = vehicle_count["vehicle_count"] / ctm_params.cell_length
+
+
+def get_density_for_time(link_id, time, vehicle_count):
+    t0 = time
+    density_t0 = vehicle_count[(vehicle_count["link_id"] == link_id) & (vehicle_count["time"] == t0)]
+    density_t0_initialized = segment_densities_predicted[link_id].copy()
+    for index, row in density_t0.iterrows():
+        density_t0_initialized[int(row["closest_cell"].split("_")[-1])-1] = row["density"]
+
+
+    t1 = t0 + ctm_params.time_step
+
+
+    density_t1 = vehicle_count[(vehicle_count["link_id"] == link_id) & (vehicle_count["time"] == t1)]
+    density_t1_initialized = segment_densities_predicted[link_id].copy()
+    for index, row in density_t1.iterrows():
+        density_t1_initialized[int(row["closest_cell"].split("_")[-1])-1] = row["density"]
+    density_t1_initialized = np.array(density_t1_initialized)
+    density_t0_initialized = np.array(density_t0_initialized)
+    # print("density_density_t0_initialized", density_t0_initialized, "density_t1_initialized", density_t1_initialized)
+    return density_t0_initialized, density_t1_initialized
+actual_values_dict = {}
+predicted_values_dict = {}
+rmses_dict = {}
+times_dict = {}
+predict_mean_dict = {}
+actual_mean_dict = {}
+
+
+for link_id in vehicle_count["link_id"].unique():
+    rmses = []
+    times = []
+    predict_mean = []
+    actual_mean = []
+    predicted_values = []
+    actual_values = []
+    for unique_time in vehicle_count[vehicle_count["link_id"] == link_id]["time"].unique(): 
+        density_t0_initialized, density_t1_initialized = get_density_for_time(link_id, unique_time, vehicle_count)
+        inflow_dt = inflow[(inflow["time"] == unique_time) & (inflow["link_id"] == link_id)]
+        if inflow_dt.empty:
+            inflow_dt = 0
+        else:
+            inflow_dt = inflow_dt["inflow"].values[0]
+        predicted_den = np.array(update_cell_status(unique_time, link_id, density_t0_initialized, ctm_params, inflow_dt, traffic_lights_df, traffic_lights_dict_states))
+        predict_mean.append(predicted_den[:].mean())
+        predicted_value = predicted_den[:]
+        actual_value = density_t1_initialized[:]
+
+        rmse = np.sqrt(np.mean((predicted_value - actual_value)**2))
+        predicted_values.append(predicted_value)
+        actual_values.append(actual_value)
+        actual_mean.append(density_t0_initialized[:].mean())
+        rmses.append(rmse)
+        times.append(unique_time)
+    actual_values_dict[link_id] = actual_values
+    predicted_values_dict[link_id] = predicted_values
+    rmses_dict[link_id] = rmses
+    times_dict[link_id] = times
+    predict_mean_dict[link_id] = predict_mean
+    actual_mean_dict[link_id] = actual_mean
+
+from collections import defaultdict
+
+all_rmses = defaultdict(lambda : defaultdict(list))
+for link_id in vehicle_count["link_id"].unique():
+    times = times_dict[link_id]
+    rmses = rmses_dict[link_id]
+    predict_mean = predict_mean_dict[link_id]
+    actual_mean = actual_mean_dict[link_id]
     
-    Args:
-        lat (float): Latitude of the point.
-        lon (float): Longitude of the point.
-        segments_gdf_exploded (GeoDataFrame): GeoDataFrame with segment geometries and cell data.
-    
-    Returns:
-        str: ID of the nearest cell (e.g., 'cell_1').
-    """
-    # Create a GeoDataFrame for the point
-    point = gpd.GeoDataFrame(
-        geometry=[Point(lat, lon)], crs="EPSG:4326"
-    )
-
-    # Reproject both point and segments to a projected CRS for accurate distance calculations
-    projected_crs = "EPSG:3395"  # Consider using a projected CRS suitable for distance measurements
-    point_proj = point.to_crs(projected_crs)
-
-    max_distance = float("inf")
-    nearest_cell_id = None
-
-    # Iterate through the segments and calculate distances
-    for index, row in segments_gdf_exploded.iloc[[link_id]].iterrows():
-        cell_columns = row.filter(regex=r'^cell_\d')  # Use raw string to avoid escape sequence warning
-        if not cell_columns.empty:
-            for cell_id, cell_value in cell_columns.items():
-                if cell_value is None and int(cell_id.split("_")[1]) > len(segment_densities_predicted[index]):  # Skip empty cells
-                    
-                    continue
-                # Assuming the cell_value corresponds to a geometry, e.g., a LineString or Polygon
-                cell_geometry = segments_gdf_exploded.at[index, cell_id]
-                # Convert to GeoSeries and reproject
-                if isinstance(cell_geometry, gpd.GeoSeries):
-                    cell_geometry = cell_geometry.to_crs(projected_crs)
-                else:
-                    cell_geometry = gpd.GeoSeries([cell_geometry], crs=segments_gdf_exploded.crs).to_crs(projected_crs).iloc[0]
-                if cell_geometry and cell_geometry.is_valid:  # Ensure the geometry is valid
-                    # Calculate the distance from the point to the cell geometry
-                    distance = point_proj.distance(cell_geometry)
-
-                    # Check if distance is scalar (just in case it's returned as a Series)
-                    if isinstance(distance, (float, int)):  # Ensure it's a scalar
-                        if distance < max_distance:
-                            max_distance = distance
-                            nearest_cell_id = cell_id  # Capture the ID of the nearest cell
-                    else:
-                        # Handle the case where distance is a Series or other unexpected result
-                        distance = distance.item()  # Convert to scalar if it's a Series
-                        if distance < max_distance:
-                            max_distance = distance
-                            nearest_cell_id = cell_id
-    if nearest_cell_id == "cell_14":
-        print(nearest_cell_id)
-    return nearest_cell_id
-
-main_df_truncated_with_cell = main_df_truncated.copy()
-
-main_df_truncated_with_cell["closest_cell"] = [
-    find_closest_cell(row["lat"], row["lon"], int(row["link_id"]), segments_gdf_exploded) 
-    for _, row in tqdm(main_df_truncated_with_cell.iterrows(), total=len(main_df_truncated_with_cell), desc="Processing Rows")
-]
-
-# print(f"The nearest cell IDs are: {main_df_truncated_with_cell['closest_cell']}")
-
-main_df_truncated_with_cell.to_csv("20181024_d1_0830_0900_segmented_oneaxistrajectory_cell.csv")
+    # plt.scatter(times[:], rmses[:], label="RMSE", s=0.5)
+    # plt.scatter(times[:], actual_mean[:], label="Actual Mean", s=55, alpha=0.25)
+    # plt.scatter(times[:], predict_mean[:], label="Predicted Mean", s=0.5, color="purple", alpha=1)
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("RMSE")
+    # plt.title("RMSE over time")
+    # plt.hlines(np.mean(rmses), times[0], times[-1], label="Mean RMSE", color="red")
+    # plt.hlines(vehicle_count[vehicle_count["link_id"] == link_id].density.mean(), times[0], times[-1], label="Mean Density", color="green")
+    # plt.grid()
+    # plt.legend()
+    # plt.show()
+    # print("For link with id: ", link_id, " the RMSE is: ", np.mean(rmses))
 
 
+from collections import defaultdict
 
+heatmap_data = defaultdict(lambda : defaultdict(list))
+min_i = 0
+for link_id in times_dict.keys():
+    for time_index in range(len(times_dict[link_id])):
+        time = times_dict[link_id][time_index]
+        a = actual_values_dict[link_id][time_index]
+        p = predicted_values_dict[link_id][time_index]
+        e2 = (a-p)**2
+        heatmap_data[link_id][time] = e2
 
 
 
